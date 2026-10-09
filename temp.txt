@@ -1,0 +1,1 @@
+#-> "Sentry-07 | HERO |HP 65%|BAT 75%|OK"

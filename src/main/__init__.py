@@ -12,6 +12,8 @@
 """
 import json
 from enum import Enum
+from decimal import Decimal
+
 
 
 # ---------------------------------------------------------------------------
@@ -36,11 +38,26 @@ class Facing(Enum):
 # ---------------------------------------------------------------------------
 def hp_ratio(hp, max_hp):
     """TODO(Q1)：血量百分比，返回 0-100 的 int；计算与边界规则见题面 Q1 规范。"""
+    hp = Decimal(hp)
+    max_hp = Decimal(max_hp)
+    return int((hp/max_hp)*100)
     raise NotImplementedError("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")
 
 
 def status_report(name, robot_type, hp, max_hp, battery):
     """TODO(Q1)：一行自检报告字符串；档位判定与逐字符格式见题面 Q1 规范。"""
+    percentage = hp_ratio(hp,max_hp)
+    if percentage<0 or percentage>100:
+        result = "error"
+        return result;
+    if battery>40 :
+        level = "OK"
+    elif battery >= 20:
+        level = "WARNING"
+    else :
+        level = "LOW"
+    result = f"{name:<10}|{robot_type:^10}|HP {percentage:>3}%|BAT {battery:>3}%|{level}"
+    return result;
     raise NotImplementedError("Q1 status_report：题面 Q1·电量映射与报告格式")
 
 
@@ -50,6 +67,7 @@ def status_report(name, robot_type, hp, max_hp, battery):
 def analyze_damage_log(lines):
     """TODO(Q2)：解析混合格式伤害日志，返回固定契约的统计 dict；
     行格式、去重与统计口径见题面 Q2 规范。"""
+    
     raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
 
 
