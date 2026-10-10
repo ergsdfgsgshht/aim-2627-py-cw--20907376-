@@ -533,8 +533,12 @@ def run_patrol(grid, max_steps=500):
 
 
 def report_to_json(stats):
-    """TODO(Q6)：把 stats 序列化为确定性的 JSON 字符串，见题面 Q6 规范。"""
-    raise NotImplementedError("Q6 report_to_json：题面 Q6·报告序列化")
+    """把 run_patrol 的统计字典序列化为确定性的 JSON 字符串（题面 Q6 规范）。
+
+    sort_keys=True 固定键序，保证同一 stats 的输出逐字节确定，
+    供自动测试精确比对。
+    """
+    return json.dumps(stats, sort_keys=True)
 
 
 # ---------------------------------------------------------------------------
@@ -542,7 +546,6 @@ def report_to_json(stats):
 # ---------------------------------------------------------------------------
 def bfs_path_length(start, target, obstacles):
     """TODO(Bonus)：BFS 全局最短路步数；返回语义与边界职责见题面 Bonus 规范。"""
-    return json.dumps(stats, sort_keys=True)
     raise NotImplementedError("Bonus bfs_path_length")
 
 
