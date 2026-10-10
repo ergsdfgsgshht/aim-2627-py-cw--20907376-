@@ -339,7 +339,8 @@ def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
             continue
         candidates.append((distance(nxt, target), direction))
 
-    best_dist, best_dir = min(candidates, key=lambda c: c[0],default=(origin, current_facing))
+    best_dist, best_dir = min(
+        candidates, key=lambda c: c[0], default=(origin, current_facing))
     return best_dir if best_dist < origin else current_facing
 
 
@@ -370,7 +371,7 @@ def decide(sensor, state, hp, heat):
     if not isinstance(state, SentryState):
         raise ValueError("state 必须是 SentryState 成员")
 
-    frames = tuple(bool(f) for f in frames)   
+    frames = tuple(bool(f) for f in frames)
     dist = sensor["enemy_dist"]
     if isinstance(dist, bool) or not isinstance(dist, int):
         dist = None                           # 非法敌距按“未知”归一
@@ -491,9 +492,11 @@ def run_patrol(grid, max_steps=500):
 
     while not grid.found_enemy and steps < max_steps and grid.fuel > 0:
         pos = grid.current_pos
-        if not wall_mode and not has_greedy_candidate(pos, grid.enemy_pos,is_blocked):
+        if not wall_mode and not has_greedy_candidate(pos, grid.enemy_pos, is_blocked):
             wall_mode = True
-            hand = ("L" if is_blocked(tpadd(pos, _LEFT_OF[grid.facing].delta))else "R")                # 贴住当前身侧的墙
+            # 贴住当前身侧的墙
+            hand = ("L" if is_blocked(
+                tpadd(pos, _LEFT_OF[grid.facing].delta))else "R")
             wall_steps = 0
             entry = distance(pos, grid.enemy_pos)
 
@@ -516,7 +519,7 @@ def run_patrol(grid, max_steps=500):
                 wall_steps = 0
             elif wall_steps > 2 * wall_limit:
                 wall_mode = False             # 换手仍超时：回到贪心
-            elif (has_greedy_candidate(grid.current_pos, grid.enemy_pos,is_blocked)and distance(grid.current_pos, grid.enemy_pos)< entry + 1):
+            elif (has_greedy_candidate(grid.current_pos, grid.enemy_pos, is_blocked) and distance(grid.current_pos, grid.enemy_pos) < entry + 1):
                 wall_mode = False             # 绕出死角：切回贪心
 
     return {"steps": steps,
