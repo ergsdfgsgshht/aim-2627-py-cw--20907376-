@@ -305,6 +305,10 @@ class SentryGrid:
             raise TypeError
         raise NotImplementedError("Q3 turn_right")
 
+    def setfacing(self, facing):
+        self._facing = facing
+        return self._facing
+
 
 # ---------------------------------------------------------------------------
 # Q4 贪心导航（题面 Q4·单步贪心导航策略）
@@ -421,10 +425,111 @@ def decide(sensor, state, hp, heat):
 # ---------------------------------------------------------------------------
 # Q6 巡逻任务（题面 Q6·巡逻契约与验收阈值）
 # ---------------------------------------------------------------------------
+_LEFT_OF = {Facing.UP: Facing.LEFT, Facing.LEFT: Facing.DOWN,
+            Facing.DOWN: Facing.RIGHT, Facing.RIGHT: Facing.UP}
+_RIGHT_OF = {v: k for k, v in _LEFT_OF.items()}
+
+
+def has_greedy_candidate(pos, target, is_blocked):
+    """贪心是否未失速：存在能严格缩短到 target 距离的可通行邻格。"""
+    here = distance(pos, target)
+    for direction in Facing:
+        nxt = tpadd(pos, direction.delta)
+        if not is_blocked(nxt) and distance(nxt, target) < here:
+            return True
+    return False
+
+
+def wall_follow_step(pos, current_facing, is_blocked, hand="L"):
+    """沿墙脱困单步决策（题面 Q6·脱困策略自定义）：返回下一步朝向。
+
+    hand="L"/"R" 选择贴左墙/右墙。规则：贴墙侧可通行则转向贴墙侧
+    （重新贴紧墙体）；贴墙侧被堵且前方被堵则向另一侧让，仍堵则掉头；
+    否则保持直行。is_blocked 由调用方提供（Q6 用 grid.is_blocked，
+    同时覆盖障碍与地图边界）。
+    """
+    side = (_LEFT_OF[current_facing] if hand == "L"
+            else _RIGHT_OF[current_facing])
+    off = (_RIGHT_OF[current_facing] if hand == "L"
+           else _LEFT_OF[current_facing])
+
+    def cell(direction):
+        return tpadd(pos, direction.delta)
+
+    if not is_blocked(cell(side)):
+        return side
+    if is_blocked(cell(current_facing)):
+        if not is_blocked(cell(off)):
+            return off
+        return _RIGHT_OF[_RIGHT_OF[current_facing]]  # 三面皆堵：掉头
+    return current_facing
+
+
 def run_patrol(grid, max_steps=500):
-    """TODO(Q6)：sense → decide → act 主循环；
-    循环结构、终止条件、脱困自由度与统计返回契约见题面 Q6 规范。"""
-    raise NotImplementedError("Q6 run_patrol：题面 Q6·主循环与统计契约")
+    """sense → decide → act 主循环：贪心导航 + 沿墙脱困（题面 Q6 规范）。
+
+    贪心阶段用 next_step_toward（障碍集合并入地图边界一圈，防止
+    贪心选中越界格）；贪心失速时切入沿墙脱困——左手先行，超过
+    周长仍绕不出去则换右手，再超时回到贪心；绕出死角（重新出现
+    贪心候选且距离回落到入口附近）即切回贪心。
+    """
+    def is_blocked(cell):
+        return grid.is_blocked(*cell)
+
+    border = ({(x, -1) for x in range(-1, grid.width + 1)}
+              | {(x, grid.height) for x in range(-1, grid.width + 1)}
+              | {(-1, y) for y in range(grid.height)}
+              | {(grid.width, y) for y in range(grid.height)})
+    greedy_obstacles = grid.obstacles | border
+
+    visited = {grid.current_pos}
+    steps = 0
+    wall_mode = False
+    hand = "L"
+    wall_steps = 0
+    entry = 0
+    wall_limit = (grid.width + grid.height) // 2   # 单手沿墙的超时预算
+
+    while not grid.found_enemy and steps < max_steps and grid.fuel > 0:
+        pos = grid.current_pos
+        if not wall_mode and not has_greedy_candidate(pos, grid.enemy_pos,
+                                                      is_blocked):
+            wall_mode = True
+            hand = ("L" if is_blocked(tpadd(pos, _LEFT_OF[grid.facing].delta))
+                    else "R")                # 贴住当前身侧的墙
+            wall_steps = 0
+            entry = distance(pos, grid.enemy_pos)
+
+        if wall_mode:
+            direction = wall_follow_step(pos, grid.facing, is_blocked, hand)
+        else:
+            direction = next_step_toward(pos, grid.enemy_pos,
+                                         greedy_obstacles, grid.facing)
+
+        while grid.facing is not direction:   # 对齐朝向后前进
+            grid.turn_right()
+        grid.move_forward()
+        steps += 1
+        visited.add(grid.current_pos)
+
+        if wall_mode:
+            wall_steps += 1
+            if wall_steps > wall_limit and hand == "L":
+                hand = "R"                    # 左手绕圈超时：换右手
+                wall_steps = 0
+            elif wall_steps > 2 * wall_limit:
+                wall_mode = False             # 换手仍超时：回到贪心
+            elif (has_greedy_candidate(grid.current_pos, grid.enemy_pos,
+                                       is_blocked)
+                    and distance(grid.current_pos, grid.enemy_pos)
+                    < entry + 1):
+                wall_mode = False             # 绕出死角：切回贪心
+
+    return {"steps": steps,
+            "collisions": grid.collision_count,
+            "visited_count": len(visited),
+            "found_enemy": grid.found_enemy,
+            "success": grid.found_enemy}
 
 
 def report_to_json(stats):
@@ -437,6 +542,7 @@ def report_to_json(stats):
 # ---------------------------------------------------------------------------
 def bfs_path_length(start, target, obstacles):
     """TODO(Bonus)：BFS 全局最短路步数；返回语义与边界职责见题面 Bonus 规范。"""
+    return json.dumps(stats, sort_keys=True)
     raise NotImplementedError("Bonus bfs_path_length")
 
 
