@@ -354,9 +354,68 @@ class SentryState(Enum):
 
 
 def decide(sensor, state, hp, heat):
-    """TODO(Q5)：纯函数决策，返回 (action: str, new_state: SentryState)；
-    sensor 字段契约、R1-R7 规则表与非法输入处理见题面 Q5 规范。"""
-    raise NotImplementedError("Q5 decide：题面 Q5·决策规则表 R1-R7")
+    """纯函数决策：按题面 Q5 规范 R1-R7 顺序求值，首条命中即返回；
+    契约外输入（缺字段 / 帧历史长度非法 / state 非枚举）raise ValueError，
+    字段存在但取值非法的按防御式归一，不抛异常。"""
+    for key in ("enemy_frames", "enemy_dist", "robot_type", "max_hp"):
+        if key not in sensor:
+            raise ValueError("sensor 缺少字段 " + key)
+    frames = sensor["enemy_frames"]
+    if (not isinstance(frames, (tuple, list))
+            or not 1 <= len(frames) <= 6):
+        raise ValueError("enemy_frames 须为长度 1-6 的 tuple/list")
+    if not isinstance(state, SentryState):
+        raise ValueError("state 必须是 SentryState 成员")
+
+    frames = tuple(bool(f) for f in frames)   # 元素按真值解释，末位=当前帧
+    dist = sensor["enemy_dist"]
+    if isinstance(dist, bool) or not isinstance(dist, int):
+        dist = None                           # 非法敌距按“未知”归一
+    is_hero = sensor["robot_type"] == "HERO"  # 非 HERO（含非法值）按步兵侧
+    max_hp = sensor["max_hp"]
+    if isinstance(max_hp, bool) or not isinstance(max_hp, int) or max_hp <= 0:
+        max_hp = 100
+    hp_pct = max(0, min(100, hp * 100 // max_hp))
+    visible = frames[-1]
+
+    """R1"""
+    if hp_pct <= 30:
+        return ("RETREAT", SentryState.RETREAT)
+
+    """R2"""
+    if state is SentryState.RETREAT:
+        if hp_pct > 30:
+            return ("RETURN", SentryState.RETURN)
+        return ("RETREAT", SentryState.RETREAT)
+
+    """R3"""
+    if state is SentryState.RETURN:
+        return ("MOVE_BASE", SentryState.PATROL)
+
+    """R4/R5"""
+    if state is SentryState.ENGAGE:
+        if visible:
+            if dist is not None and dist <= 3:
+                return ("SHOOT", SentryState.ENGAGE)
+            if is_hero:
+                return ("MOVE_RIGHT", SentryState.ENGAGE)
+            return ("MOVE_LEFT", SentryState.ENGAGE)
+        if any(frames[:-1]):                  # 短暂丢失：历史帧还见过
+            return ("HOLD_FIRE", SentryState.ENGAGE)
+        return ("SCAN", SentryState.SUSPECT)  # 持续丢失：整窗皆 False
+
+    """R6/R7"""
+    if visible:
+        if len(frames) >= 2 and frames[-2]:   # 末两位均为真（末位已真）
+            if dist is not None and dist <= 3:
+                return ("SHOOT", SentryState.ENGAGE)
+            if is_hero:
+                return ("MOVE_RIGHT", SentryState.ENGAGE)
+            return ("MOVE_LEFT", SentryState.ENGAGE)
+        return ("SCAN", SentryState.SUSPECT)
+    if state is SentryState.PATROL:
+        return ("PATROL_MOVE", SentryState.PATROL)
+    return ("SCAN", SentryState.SUSPECT)
 
 
 # ---------------------------------------------------------------------------
