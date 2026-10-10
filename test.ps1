@@ -1,1 +1,0 @@
-python -m pytest src/tests/test_main.py
