@@ -1,3 +1,4 @@
+# aim-py-cw
 # -*- coding: utf-8 -*-
 """AIM 2627 Python Coursework —— 哨兵 Sentry 控制模块（学生骨架）。
 
@@ -13,7 +14,6 @@
 import json
 from enum import Enum
 from decimal import Decimal
-
 
 
 # ---------------------------------------------------------------------------
@@ -46,29 +46,118 @@ def hp_ratio(hp, max_hp):
 
 def status_report(name, robot_type, hp, max_hp, battery):
     """TODO(Q1)：一行自检报告字符串；档位判定与逐字符格式见题面 Q1 规范。"""
-    percentage = hp_ratio(hp,max_hp)
-    if percentage<0 or percentage>100:
+    percentage = hp_ratio(hp, max_hp)
+    if percentage < 0 or percentage > 100:
         result = "error"
-        return result;
-    if battery>40 :
+        return result
+    if battery > 40:
         level = "OK"
     elif battery >= 20:
         level = "WARNING"
-    else :
+    else:
         level = "LOW"
     result = f"{name:<10}|{robot_type:^10}|HP {percentage:>3}%|BAT {battery:>3}%|{level}"
-    return result;
+    return result
     raise NotImplementedError("Q1 status_report：题面 Q1·电量映射与报告格式")
 
 
 # ---------------------------------------------------------------------------
 # Q2 战斗日志分析（题面 Q2·多源日志解析与统计）
 # ---------------------------------------------------------------------------
+_SENSOR_TO_ARMOR = {"F": "front", "L": "left", "R": "right"}
+
+
+def _parse_sensor_line(line):
+    """解析传感器行 "F:32,L:5,R:12"，返回 [(armor, damage), ...]。
+
+    每段必须形如 "字母:正整数"（F/L/R 对应 front/left/right，段允许缺失）；
+    任一段非法则整行按脏行处理，返回 None。
+    """
+    hits = []
+    for seg in line.split(","):
+        letter, sep, value = seg.partition(":")
+        if sep != ":" or letter not in _SENSOR_TO_ARMOR:
+            return None
+        if not (value.isascii() and value.isdigit()):
+            return None
+        damage = int(value)
+        if damage <= 0:
+            return None
+        hits.append((_SENSOR_TO_ARMOR[letter], damage))
+    return hits
+
+
 def analyze_damage_log(lines):
-    """TODO(Q2)：解析混合格式伤害日志，返回固定契约的统计 dict；
-    行格式、去重与统计口径见题面 Q2 规范。"""
-    
-    raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
+    """解析混合格式伤害日志，返回固定契约的统计 dict（题面 Q2 规范）。
+
+    有效行两种：
+    - 传感器行 "F:32,L:5,R:12"：一行记一个事件；
+    - JSON 行 '{"armor": ..., "damage": ..., "id": ...}'：armor 须为
+      front/left/right 之一，damage 须为严格正整数（排除 bool/float），
+      id 可选；带 id 的行按 id 去重，同一 id 只计第一次出现。
+
+    其余输入（空行、# 注释、缺字段、字段非法、任何无法解析的行）
+    一律跳过且不计入任何统计；解析全程不得抛出异常。
+
+    输出口径：total 为有效事件伤害总和；by_armor 三键恒存在；
+    most_hit 为伤害最大的部位（并列时按 front/left/right 顺序取先者），
+    无有效事件时为 None；avg = round(total/有效事件数, 2)，空日志为 0.0。
+    """
+    by_armor = {"front": 0, "left": 0, "right": 0}
+    total = 0
+    events = 0
+    seen_ids = set()
+
+    for raw in lines:
+        if not isinstance(raw, str):
+            continue
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        hits = _parse_sensor_line(line)
+        if hits is not None:
+            for armor, damage in hits:
+                by_armor[armor] += damage
+                total += damage
+            events += 1
+            continue
+
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        armor = obj.get("armor")
+        damage = obj.get("damage")
+        if not isinstance(armor, str) or armor not in by_armor:
+            continue
+        ok_damage = (isinstance(damage, int)
+                     and not isinstance(damage, bool)
+                     and damage > 0)
+        if not ok_damage:
+            continue
+
+        event_id = obj.get("id")
+        if event_id is not None:
+            try:
+                if event_id in seen_ids:
+                    continue
+                seen_ids.add(event_id)
+            except TypeError:
+                pass  # id 不可哈希，视作无 id 独立计数
+
+        by_armor[armor] += damage
+        total += damage
+        events += 1
+
+    return {
+        "total": total,
+        "by_armor": by_armor,
+        "most_hit": max(by_armor, key=by_armor.get) if events else None,
+        "avg": round(total / events, 2) if events else 0.0,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +247,10 @@ class SentryGrid:
     @current_pos.setter
     def current_pos(self, value):
         """TODO(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
+        if len(self._pos)==2:
+            return tuple(self._pos)
+        else:
+            raise TypeError
         raise NotImplementedError("Q3 current_pos.setter：题面 Q3·位置校验三步")
 
     def move_forward(self):
