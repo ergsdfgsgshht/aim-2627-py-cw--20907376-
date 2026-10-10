@@ -247,7 +247,7 @@ class SentryGrid:
     @current_pos.setter
     def current_pos(self, value):
         """TODO(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
-        if len(value)==2:
+        if len(value) == 2:
             self._pos = value
             return tuple(self._pos)
         else:
@@ -257,7 +257,7 @@ class SentryGrid:
     def move_forward(self):
         """TODO(Q3)：朝当前 facing 前进一格，返回执行后的位置；
         碰撞、耗电与断电语义见题面 Q3 规范。"""
-        if self._fuel <= 0:              
+        if self._fuel <= 0:
             return self._pos
         dx, dy = self._facing.delta
         next_pos = (self._pos[0] + dx, self._pos[1] + dy)
@@ -302,48 +302,42 @@ class SentryGrid:
             self._facing = Facing.LEFT
             return self._facing
         else:
-            raise TypeError        
+            raise TypeError
         raise NotImplementedError("Q3 turn_right")
 
 
 # ---------------------------------------------------------------------------
 # Q4 贪心导航（题面 Q4·单步贪心导航策略）
 # ---------------------------------------------------------------------------
-def tpadd(tp1,tp2):
-    tpx = tp1[0]+tp2[0]
-    tpy = tp1[1]+tp2[1]
-    return (tpx,tpy)       #定义坐标的加法
+def tpadd(tp1, tp2):
+    """坐标加法：两个 (x, y) 逐轴相加，返回新 tuple。"""
+    return (tp1[0] + tp2[0], tp1[1] + tp2[1])
 
-def distance(pos1,pos2):
-    dx = abs(pos2[0]-pos1[0])
-    dy = abs(pos2[1]-pos1[1])
-    return dx+dy           #定义曼哈顿距离
+
+def distance(pos1, pos2):
+    """两点间的曼哈顿距离（|dx| + |dy|）。"""
+    return abs(pos2[0] - pos1[0]) + abs(pos2[1] - pos1[1])
+
 
 def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
-    """TODO(Q4)：返回下一步应朝向的 Facing；
-    候选判定、优先级与回退规则见题面 Q4 规范。"""
-    distance_origin = distance(pos,target) 
-    distance_up = distance(tpadd(pos,Facing.UP),target) if tpadd(pos,Facing.UP) not in obstacles else 9999999
-    distance_left = distance(tpadd(pos,Facing.LEFT),target) if tpadd(pos,Facing.LEFT) not in obstacles else 9999999
-    distance_down = distance(tpadd(pos,Facing.DOWN),target) if tpadd(pos,Facing.DOWN) not in obstacles else 9999999
-    distance_right = distance(tpadd(pos,Facing.RIGHT),target) if tpadd(pos,Facing.RIGHT) not in obstacles else 9999999
-    min = distance_up if min>distance_up else min
-    min = distance_left if min>distance_left else min
-    min = distance_down if min>distance_down else min
-    min = distance_right if min>distance_right else min
-    if min >= distance_origin:
-        return current_facing
-    if min == distance_up:
-        return Facing.UP
-    elif min == distance_left:
-        return Facing.LEFT
-    elif min == distance_down:
-        return Facing.DOWN
-    elif min == distance_right:
-        return Facing.RIGHT
-    else:
-        raise TypeError
-    raise NotImplementedError("Q4 next_step_toward：题面 Q4·贪心策略与回退")
+    """返回下一步应朝向的 Facing（题面 Q4 规范）。
+
+    用 Facing.delta 把每个候选方向换算成候选格，跳过障碍格；
+    取到目标曼哈顿距离最小的候选方向，并列时按 Facing 定义顺序
+    （UP/DOWN/LEFT/RIGHT）先到先得；没有任何候选能严格缩短
+    距离时，回退返回 current_facing。
+    """
+    origin = distance(pos, target)
+    candidates = []
+    for direction in Facing:
+        nxt = tpadd(pos, direction.delta)
+        if nxt in obstacles:
+            continue
+        candidates.append((distance(nxt, target), direction))
+
+    best_dist, best_dir = min(candidates, key=lambda c: c[0],
+                              default=(origin, current_facing))
+    return best_dir if best_dist < origin else current_facing
 
 
 # ---------------------------------------------------------------------------
