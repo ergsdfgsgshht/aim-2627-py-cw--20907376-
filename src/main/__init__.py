@@ -324,7 +324,7 @@ def distance(pos1, pos2):
 
 
 def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
-    """返回下一步应朝向的 Facing（题面 Q4 规范）。
+    """
 
     用 Facing.delta 把每个候选方向换算成候选格，跳过障碍格；
     取到目标曼哈顿距离最小的候选方向，并列时按 Facing 定义顺序
@@ -371,7 +371,7 @@ def decide(sensor, state, hp, heat):
     if not isinstance(state, SentryState):
         raise ValueError("state 必须是 SentryState 成员")
 
-    frames = tuple(bool(f) for f in frames)   # 元素按真值解释，末位=当前帧
+    frames = tuple(bool(f) for f in frames)   
     dist = sensor["enemy_dist"]
     if isinstance(dist, bool) or not isinstance(dist, int):
         dist = None                           # 非法敌距按“未知”归一
