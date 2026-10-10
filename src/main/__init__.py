@@ -471,7 +471,7 @@ def run_patrol(grid, max_steps=500):
     贪心阶段用 next_step_toward（障碍集合并入地图边界一圈，防止
     贪心选中越界格）；贪心失速时切入沿墙脱困——左手先行，超过
     周长仍绕不出去则换右手，再超时回到贪心；绕出死角（重新出现
-    贪心候选且距离回落到入口附近）即切回贪心。hhhhhhhhhhhhhhhhhhhhhhhh
+    贪心候选且距离回落到入口附近）即切回贪心。hhhhhhhhhhhhhhhhhhhhhhhhjjjjjjjh
     """
     def is_blocked(cell):
         return grid.is_blocked(*cell)
