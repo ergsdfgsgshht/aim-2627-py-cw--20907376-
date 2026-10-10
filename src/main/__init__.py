@@ -256,7 +256,7 @@ class SentryGrid:
 
     def move_forward(self):
         """TODO(Q3)：朝当前 facing 前进一格，返回执行后的位置；
-        碰撞、耗电与断电语义见题面 Q3 规范。"""
+        碰撞、耗电与断电语义见题面 Q3 规范。    """
         if self._fuel <= 0:
             return self._pos
         dx, dy = self._facing.delta
@@ -339,8 +339,7 @@ def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
             continue
         candidates.append((distance(nxt, target), direction))
 
-    best_dist, best_dir = min(candidates, key=lambda c: c[0],
-                              default=(origin, current_facing))
+    best_dist, best_dir = min(candidates, key=lambda c: c[0],default=(origin, current_facing))
     return best_dir if best_dist < origin else current_facing
 
 
@@ -431,7 +430,7 @@ _RIGHT_OF = {v: k for k, v in _LEFT_OF.items()}
 
 
 def has_greedy_candidate(pos, target, is_blocked):
-    """贪心是否未失速：存在能严格缩短到 target 距离的可通行邻格。"""
+    """贪心是否未失速：存在能严格缩短到 target 距离的可通行邻格。       """
     here = distance(pos, target)
     for direction in Facing:
         nxt = tpadd(pos, direction.delta)
@@ -471,7 +470,7 @@ def run_patrol(grid, max_steps=500):
     贪心阶段用 next_step_toward（障碍集合并入地图边界一圈，防止
     贪心选中越界格）；贪心失速时切入沿墙脱困——左手先行，超过
     周长仍绕不出去则换右手，再超时回到贪心；绕出死角（重新出现
-    贪心候选且距离回落到入口附近）即切回贪心。hhhhhhhhhhhhhhhh
+    贪心候选且距离回落到入口附近）即切回贪心。hhhhhhhhhhhhhhhhhhhhhhhh
     """
     def is_blocked(cell):
         return grid.is_blocked(*cell)
@@ -528,10 +527,10 @@ def run_patrol(grid, max_steps=500):
 
 
 def report_to_json(stats):
-    """把 run_patrol 的统计字典序列化为确定性的 JSON 字符串（题面 Q6 规范）。
+    """把 run_patrol 的统计字典序列化为确定性的 JSON 字符串（题面 Q6 规范）
 
     sort_keys=True 固定键序，保证同一 stats 的输出逐字节确定，
-    供自动测试精确比对。
+    供自动测试精确比比
     """
     return json.dumps(stats, sort_keys=True)
 
